@@ -13,6 +13,7 @@ BASE = "https://api.openbrewerydb.org/v1/breweries"
 HEADERS = {"User-Agent": "brewery-notebook/1.0"}
 engine = create_engine("sqlite:///brewery.sql")
 
+# Fetch data from API
 def extract(params, BASE=BASE, delay=0.3, per_page=200):
     frames, page = [], 1
     while True:
@@ -31,6 +32,7 @@ def extract(params, BASE=BASE, delay=0.3, per_page=200):
         time.sleep(delay)
     return pd.concat(frames, ignore_index=True)
 
+# Filter data for relevant data
 def filter_data(df):
     print("---------BEFORE FILTERING---------")
     print(df.info())
@@ -43,11 +45,13 @@ def filter_data(df):
 
     return df
 
+# Save data to sqlite file
 def save_local_db(df):
     df.to_sql(name="brewery", con=engine, if_exists="replace", index=False)
 
 def answer_questions():
     print("Answer to question 1:")
+    # Fetch microbreweries per us state
     sql_command = '''
         SELECT state_province, country, brewery_type, COUNT(*) AS n
         FROM brewery
@@ -59,6 +63,7 @@ def answer_questions():
 
     micro_breweries_per_state = pd.read_sql(sql_command, con=engine)
 
+    # Get the state with the most microbreweries
     top = micro_breweries_per_state.iloc[0]
     state = top["state_province"]
     amount = top["n"]
@@ -67,6 +72,7 @@ def answer_questions():
 
     print("Answer to question 2:")
 
+    # Reusing the micro_breweries_per_state dataframe to get the top 5 states with the most microbreweries
     top_5_states = micro_breweries_per_state.head(5)
 
     print("The top 5 states in the USA with the most microbreweries are:")
@@ -76,6 +82,7 @@ def answer_questions():
         count += 1
 
     print("Answer to question 3:")
+    # Fetching the brewpubs based in Incheon from the DB
     sql_command = '''
         SELECT state_province, brewery_type, COUNT(*) AS n
         FROM brewery
@@ -89,6 +96,8 @@ def answer_questions():
     print("There are", brewpubs_incheon_count, "brewpub breweries in Incheon, South Korea")
 
     print("Answer to question 4:")
+    # Fetching the phone numbers in korean citys to check for common prefixes
+    # Only using the citys where at least two numbers are entered because otherwise no pattern can be found
     sql_command = '''
         SELECT country, city, phone
         FROM brewery
@@ -107,25 +116,34 @@ def answer_questions():
 
 
 def visualize():
+    # Visualize the different brewery types as a pie chart
     sql_command = '''
-        SELECT state_province, country, brewery_type, COUNT(*) AS n
+        SELECT brewery_type, COUNT(*) as n
         FROM brewery
-        WHERE country = 'United States'
-        AND brewery_type = 'micro'
-        GROUP BY state_province, country, brewery_type
-        ORDER BY n DESC
+        GROUP BY brewery_type
     '''
-    top_5_states = pd.read_sql(sql_command, con=engine).head(5)
-
-    plt.bar(top_5_states["state_province"], top_5_states["n"])
-    plt.yticks(np.arange(0, 500, 50))
-    plt.xlabel("US State")
-    plt.ylabel("Brewery amount")
-    plt.title("Top 5 US States for breweries")
-    plt.tight_layout()
-    plt.savefig("out/top_five_us.png")
+    
+    brewery_types = pd.read_sql(sql_command, con=engine)
+    brewery_types = brewery_types.sort_values("n", ascending=False)
+    
+    types = brewery_types["brewery_type"]
+    amounts = brewery_types["n"]
+    total = amounts.sum()
+    
+    # Combine less represented types for the chart
+    small = brewery_types["n"] / total < 0.02
+    other = pd.DataFrame({"brewery_type": ["other"], "n": [brewery_types.loc[small, "n"].sum()]})
+    grouped = pd.concat([brewery_types[~small], other], ignore_index=True)
+    
+    plt.figure(figsize=(6, 6))
+    plt.pie(grouped["n"], labels=grouped["brewery_type"], autopct="%1.1f%%", startangle=90, pctdistance=0.8, counterclock=False)
+    
+    plt.title("Brewery Types")
+    plt.savefig("out/brewery_types.png")
     plt.close()
+    
 
+    # Visualize the distribution of breweries per state as a heatmap of the USA
     sql_command = '''
         SELECT state_province, country, COUNT(*) AS n
         FROM brewery
@@ -153,6 +171,27 @@ def visualize():
     )
     fig.write_image("out/breweries_per_state.png")
     fig.show()
+
+    
+    # Visualize these 5 states as a bar diagram with the amount of microbreweries they have
+    sql_command = '''
+        SELECT state_province, country, brewery_type, COUNT(*) AS n
+        FROM brewery
+        WHERE country = 'United States'
+        AND brewery_type = 'micro'
+        GROUP BY state_province, country, brewery_type
+        ORDER BY n DESC
+    '''
+    top_5_states = pd.read_sql(sql_command, con=engine).head(5)
+
+    plt.bar(top_5_states["state_province"], top_5_states["n"])
+    plt.yticks(np.arange(0, 500, 50))
+    plt.xlabel("US State")
+    plt.ylabel("Brewery amount")
+    plt.title("Top 5 US States for breweries")
+    plt.tight_layout()
+    plt.savefig("out/top_five_us.png")
+    plt.close()
 
 
 if __name__ == "__main__":
