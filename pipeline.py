@@ -188,7 +188,7 @@ def visualize():
     plt.yticks(np.arange(0, 500, 50))
     plt.xlabel("US State")
     plt.ylabel("Brewery amount")
-    plt.title("Top 5 US States for breweries")
+    plt.title("Top 5 US States for microbreweries")
     plt.tight_layout()
     plt.savefig("out/top_five_us.png")
     plt.close()
