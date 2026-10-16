@@ -4,8 +4,8 @@ ETL pipeline and analysis for **Case A** of the [Basic End-to-End Pipeline Desig
 
 Two entry points for the same pipeline:
 
-- `[End-To-End-Pipeline.ipynb](./End-To-End-Pipeline.ipynb)` — preferred for reading: interactive walkthrough with exploration, `/meta` cross-checks, and inline charts
-- `[pipeline.py](./pipeline.py)` — same ETL, answers, and charts as a single runnable script (prints to the terminal, writes charts to `out/`)
+- [`End-To-End-Pipeline.ipynb`](./End-To-End-Pipeline.ipynb) — Jupyter notebook; preferred for reading: interactive walkthrough with exploration, `/meta` cross-checks, and inline charts
+- [`pipeline.py`](./pipeline.py) — same ETL, answers, and charts as a single runnable script (prints to the terminal, writes charts to `out/`)
 
 
 
@@ -52,7 +52,7 @@ pip install -r requirements.txt
 python pipeline.py
 ```
 
-Or open `[End-To-End-Pipeline.ipynb](./End-To-End-Pipeline.ipynb)` and run all cells.
+Or open [`End-To-End-Pipeline.ipynb`](./End-To-End-Pipeline.ipynb) and run all cells.
 
 Both write SQLite (`brewery.sql`) and charts under `out/`. No external database server is required.
 
