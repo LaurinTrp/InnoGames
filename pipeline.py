@@ -10,7 +10,6 @@ import os
 os.makedirs("out", exist_ok=True)
 
 BASE = "https://api.openbrewerydb.org/v1/breweries"
-HEADERS = {"User-Agent": "brewery-notebook/1.0"}
 engine = create_engine("sqlite:///brewery.sql")
 
 # Fetch data from API
@@ -20,7 +19,6 @@ def extract(params, BASE=BASE, delay=0.3, per_page=200):
         r = requests.get(
             BASE,
             params={**params, "per_page": per_page, "page": page},
-            headers=HEADERS,
             timeout=30,
         )
         r.raise_for_status()
@@ -51,7 +49,7 @@ def save_local_db(df):
 
 def answer_questions():
     print("Answer to question 1:")
-    # Fetch microbreweries per us state
+    # Fetch microbreweries per us state descending with limit 5
     sql_command = '''
         SELECT state_province, country, brewery_type, COUNT(*) AS n
         FROM brewery
@@ -59,12 +57,13 @@ def answer_questions():
         AND brewery_type = 'micro'
         GROUP BY state_province, country, brewery_type
         ORDER BY n DESC
+        LIMIT 5
     '''
 
-    micro_breweries_per_state = pd.read_sql(sql_command, con=engine)
+    top_states_by_micro_breweries = pd.read_sql(sql_command, con=engine)
 
     # Get the state with the most microbreweries
-    top = micro_breweries_per_state.iloc[0]
+    top = top_states_by_micro_breweries.iloc[0]
     state = top["state_province"]
     amount = top["n"]
 
@@ -72,12 +71,10 @@ def answer_questions():
 
     print("Answer to question 2:")
 
-    # Reusing the micro_breweries_per_state dataframe to get the top 5 states with the most microbreweries
-    top_5_states = micro_breweries_per_state.head(5)
-
+    # Reusing the top_states_by_micro_breweries
     print("The top 5 states in the USA with the most microbreweries are:")
     count = 1
-    for state in top_5_states["state_province"]:
+    for state in top_states_by_micro_breweries["state_province"]:
         print(count, state)
         count += 1
 
